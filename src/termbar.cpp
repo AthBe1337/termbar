@@ -1,33 +1,91 @@
 #include "termbar.h"
 #include <iostream>
-#include <sys/ioctl.h>
-#include <unistd.h>
 #include <cstdlib>
+
+#ifdef _WIN32
+    #ifndef NOMINMAX
+    #define NOMINMAX
+    #endif
+    #include <windows.h>
+    #include <io.h>
+    #define FILENO_STDOUT _fileno(stdout)
+    #define ISATTY _isatty
+#else
+    #include <sys/ioctl.h>
+    #include <unistd.h>
+    #define FILENO_STDOUT STDOUT_FILENO
+    #define ISATTY isatty
+#endif
 
 namespace termbar {
 
-ProgressBar::ProgressBar(int total, Color color) 
-    : total_steps_(total), current_step_(0), finished_(false) {
-    
-    update_terminal_size();
-    color_code_ = get_ansi_code(color);
-    reset_code_ = supports_color() ? "\033[0m" : "";
+ProgressBar::ProgressBar(int total, Color color)
+    : total_steps_(total), current_step_(0), finished_(false), term_rows_(0), term_cols_(0) {
 
-    std::cout << "\033[?25l" << std::flush; // 隐藏光标
+    setup_console();
+
+    update_terminal_info();
+
+    color_code_ = get_ansi_code(color);
+    reset_code_ = (is_interactive() && !color_code_.empty()) ? "\033[0m" : "";
+
+    if (is_interactive()) {
+        std::cout << "\033[?25l" << std::flush;
+    }
 }
 
 ProgressBar::~ProgressBar() {
     finish();
 }
 
+void ProgressBar::setup_console() {
+#ifdef _WIN32
+    HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+    if (hOut == INVALID_HANDLE_VALUE) return;
+
+    DWORD dwMode = 0;
+    if (!GetConsoleMode(hOut, &dwMode)) return;
+
+    // ENABLE_VIRTUAL_TERMINAL_PROCESSING = 0x0004
+    dwMode |= 0x0004;
+    SetConsoleMode(hOut, dwMode);
+
+    // SetConsoleOutputCP(CP_UTF8);
+#endif
+}
+
+void ProgressBar::update_terminal_info() {
+#ifdef _WIN32
+    CONSOLE_SCREEN_BUFFER_INFO csbi;
+    if (GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &csbi)) {
+        term_cols_ = csbi.srWindow.Right - csbi.srWindow.Left + 1;
+        term_rows_ = csbi.srWindow.Bottom - csbi.srWindow.Top + 1;
+    } else {
+        term_cols_ = 80;
+        term_rows_ = 25;
+    }
+#else
+    struct winsize w;
+    if (ioctl(FILENO_STDOUT, TIOCGWINSZ, &w) == 0) {
+        term_cols_ = w.ws_col;
+        term_rows_ = w.ws_row;
+    } else {
+        term_cols_ = 80;
+        term_rows_ = 25;
+    }
+#endif
+}
+
+bool ProgressBar::is_interactive() {
+    return ISATTY(FILENO_STDOUT);
+}
+
+
 void ProgressBar::update(int step) {
     std::lock_guard<std::mutex> lock(output_mutex_);
     if (finished_) return;
 
-    // 每次更新检查窗口高度，应对运行时调整窗口大小
-    struct winsize w;
-    ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
-    term_rows_ = w.ws_row;
+    update_terminal_info();
 
     current_step_ = step;
     if (current_step_ > total_steps_) current_step_ = total_steps_;
@@ -46,14 +104,9 @@ void ProgressBar::log(const std::string& message) {
         return;
     }
 
-    // 打印日志，自动换行
     std::cout << "\033[K" << message << std::endl;
 
-    // 强制重绘底部进度条，防止被日志滚动卷走
-    struct winsize w;
-    ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
-    term_rows_ = w.ws_row;
-    
+    update_terminal_info();
     save_cursor();
     move_cursor(term_rows_, 1);
     clear_line();
@@ -67,14 +120,17 @@ void ProgressBar::finish() {
         finished_ = true;
         save_cursor();
         move_cursor(term_rows_, 1);
-        clear_line(); // 清除进度条
+        clear_line();
         restore_cursor();
-        std::cout << "\033[?25h" << std::flush; // 恢复光标
+        if (is_interactive()) {
+            std::cout << "\033[?25h" << std::flush;
+        }
     }
 }
 
 std::string ProgressBar::get_ansi_code(Color color) {
-    if (!supports_color()) return "";
+    if (!is_interactive()) return "";
+
     switch (color) {
         case Color::Red:     return "\033[31m";
         case Color::Green:   return "\033[32m";
@@ -87,23 +143,6 @@ std::string ProgressBar::get_ansi_code(Color color) {
     }
 }
 
-bool ProgressBar::supports_color() {
-    if (!isatty(STDOUT_FILENO)) return false;
-    const char* term = std::getenv("TERM");
-    if (term == nullptr) return false;
-    std::string s(term);
-    return s.find("xterm") != std::string::npos || 
-           s.find("color") != std::string::npos ||
-           s.find("256") != std::string::npos ||
-           s.find("screen") != std::string::npos;
-}
-
-void ProgressBar::update_terminal_size() {
-    struct winsize w;
-    ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
-    term_rows_ = w.ws_row;
-}
-
 void ProgressBar::move_cursor(int row, int col) {
     std::cout << "\033[" << row << ";" << col << "H";
 }
@@ -113,12 +152,10 @@ void ProgressBar::restore_cursor() { std::cout << "\0338"; }
 void ProgressBar::clear_line() { std::cout << "\033[2K"; }
 
 std::string ProgressBar::get_bar_string() {
-    struct winsize w;
-    ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
-    int width = w.ws_col;
     float progress = (total_steps_ > 0) ? (float)current_step_ / total_steps_ : 0.0f;
-    int bar_width = width - 8; 
+    int bar_width = term_cols_ - 8;
     if (bar_width < 0) bar_width = 0;
+
     int filled = (int)(bar_width * progress);
 
     std::string bar = "[";
