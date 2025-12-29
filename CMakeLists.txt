@@ -18,7 +18,7 @@ find_package(Threads REQUIRED)
 target_link_libraries(termbar PRIVATE Threads::Threads)
 
 # --- 构建示例 (可选) ---
-option(BUILD_EXAMPLES "Build example programs" ON)
+option(BUILD_EXAMPLES "Build example programs" OFF)
 
 if(BUILD_EXAMPLES)
     # 示例 1: 基础下载
