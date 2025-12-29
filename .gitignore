@@ -1,2 +1,55 @@
-build/
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
 
+# IDEs/Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+.project
+.classpath
+.settings/
+*.sublime-project
+*.sublime-workspace
+
+# Build and Dependencies
+node_modules/
+bower_components/
+dist/
+build/
+out/
+target/
+bin/
+obj/
+
+# Logs and temporary files
+*.log
+logs/
+*.tmp
+*.temp
+.cache/
+
+# Environment and Secrets
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+certs/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+env/
+.env/
+
+# Miscellaneous
+.terraform/
+*.tfstate
+*.tfstate.backup
+.serverless/
