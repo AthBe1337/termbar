@@ -50,7 +50,7 @@ void ProgressBar::setup_console() {
     dwMode |= 0x0004;
     SetConsoleMode(hOut, dwMode);
 
-    // SetConsoleOutputCP(CP_UTF8);
+    SetConsoleOutputCP(CP_UTF8);
 #endif
 }
 
