@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 3.14)
 project(termbar VERSION 1.0.0 LANGUAGES CXX)
 
+if(MSVC)
+    add_compile_options(/utf-8)
+endif()
+
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON) # 确保生成的代码可以用于共享库/Python模块
