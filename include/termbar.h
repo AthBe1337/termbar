@@ -3,6 +3,20 @@
 #include <string>
 #include <mutex>
 
+#if defined(TERMBAR_STATIC)
+    #define TERMBAR_API
+#else
+    #if defined(_WIN32)
+        #if defined(termbar_EXPORTS)
+            #define TERMBAR_API __declspec(dllexport)
+        #else
+            #define TERMBAR_API __declspec(dllimport)
+        #endif
+    #else
+        #define TERMBAR_API __attribute__((visibility("default")))
+    #endif
+#endif
+
 namespace termbar {
 
 enum class Color {

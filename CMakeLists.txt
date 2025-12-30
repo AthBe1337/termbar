@@ -44,6 +44,7 @@ if(TERMBAR_BUILD_STATIC)
     else()
         set_target_properties(termbar_static PROPERTIES OUTPUT_NAME "termbar")
     endif()
+    target_compile_definitions(termbar_static PUBLIC TERMBAR_STATIC)
     target_include_directories(termbar_static PUBLIC ${TERMBAR_HEADERS})
     target_link_libraries(termbar_static PRIVATE Threads::Threads)
     add_library(termbar::static ALIAS termbar_static)
@@ -60,7 +61,7 @@ if(TERMBAR_BUILD_PYTHON)
     FetchContent_Declare(
         pybind11
         GIT_REPOSITORY https://github.com/pybind/pybind11.git
-        GIT_TAG        v2.11.1 # 推荐锁定一个稳定版本
+        GIT_TAG        v2.11.1
     )
 
     set(PYBIND11_FINDPYTHON ON)
