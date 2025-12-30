@@ -50,7 +50,7 @@ void ProgressBar::setup_console() {
     dwMode |= 0x0004;
     SetConsoleMode(hOut, dwMode);
 
-    // SetConsoleOutputCP(CP_UTF8);
+    SetConsoleOutputCP(CP_UTF8);
 #endif
 }
 
@@ -92,8 +92,7 @@ void ProgressBar::update(int step) {
 
     save_cursor();
     move_cursor(term_rows_, 1);
-    clear_line();
-    std::cout << get_bar_string() << std::flush;
+    std::cout << '\r' + get_bar_string() << std::flush;
     restore_cursor();
 }
 
