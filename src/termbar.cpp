@@ -20,7 +20,7 @@
 namespace termbar {
 
 ProgressBar::ProgressBar(int total, Color color)
-    : total_steps_(total), current_step_(0), finished_(false), term_rows_(0), term_cols_(0) {
+    : total_steps_(total), current_step_(0), term_rows_(0), term_cols_(0), finished_(false) {
 
     setup_console();
 
