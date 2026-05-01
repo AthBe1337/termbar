@@ -155,18 +155,29 @@ std::string ProgressBar::get_bar_string() {
     int bar_width = term_cols_ - 8;
     if (bar_width < 0) bar_width = 0;
 
-    int filled = (int)(bar_width * progress);
+    // Sub-character granularity: use 1/8-width block characters
+    // ▏▎▍▌▋▊▉ represent 1/8 through 7/8 fill
+    static const char* partial_blocks[] = {"", "▏", "▎", "▍", "▌", "▋", "▊", "▉"};
+
+    int total_eighths = (int)(bar_width * 8 * progress);
+    int full_blocks = total_eighths / 8;
+    int remainder = total_eighths % 8;
 
     std::string bar = "[";
     bar += color_code_;
-    for (int i = 0; i < bar_width; ++i) {
-        if (i < filled) bar += "█";
-        else {
-            if (i == filled) bar += reset_code_;
-            bar += " ";
-        }
-    }
-    if (filled == bar_width) bar += reset_code_;
+
+    for (int i = 0; i < full_blocks; ++i)
+        bar += "█";
+
+    if (remainder > 0)
+        bar += partial_blocks[remainder];
+
+    bar += reset_code_;
+
+    int filled_slots = full_blocks + (remainder > 0 ? 1 : 0);
+    for (int i = filled_slots; i < bar_width; ++i)
+        bar += " ";
+
     bar += "] " + std::to_string((int)(progress * 100)) + "%";
     return bar;
 }
