@@ -13,7 +13,7 @@ int main() {
     // --- 阶段 1: 检查环境 (黄色) ---
     {
         std::cout << "Step 1/3: Checking Environment\n";
-        termbar::ProgressBar bar(100, termbar::Color::Yellow);
+        termbar::ProgressBar bar(100, termbar::Color::Yellow, "Checking", /*enable_eta=*/true);
         for (int i = 0; i <= 100; i+=2) {
             bar.update(i);
             if (i == 50) bar.log(" > Memory Check... OK");
@@ -26,7 +26,7 @@ int main() {
     // --- 阶段 2: 安装核心组件 (蓝色) ---
     {
         std::cout << "Step 2/3: Installing Core Modules\n";
-        termbar::ProgressBar bar(200, termbar::Color::Blue);
+        termbar::ProgressBar bar(200, termbar::Color::Blue, "Installing", /*enable_eta=*/true);
         for (int i = 0; i <= 200; i++) {
             bar.update(i);
             if (i % 50 == 0) bar.log(" > Extracted module_" + std::to_string(i));
@@ -39,7 +39,7 @@ int main() {
     // --- 阶段 3: 清理临时文件 (红色) ---
     {
         std::cout << "Step 3/3: Cleanup (Sensitive Operation)\n";
-        termbar::ProgressBar bar(50, termbar::Color::Red);
+        termbar::ProgressBar bar(50, termbar::Color::Red, "Cleanup", /*enable_eta=*/true);
         for (int i = 0; i <= 50; i++) {
             bar.update(i);
             if (i == 25) bar.log(" > Removing /tmp/install_cache");

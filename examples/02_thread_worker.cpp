@@ -21,8 +21,8 @@ void worker_task(termbar::ProgressBar& bar, int start_id, int count) {
 int main() {
     const int total_items = 100;
     
-    // 使用青色进度条
-    termbar::ProgressBar bar(total_items, termbar::Color::Cyan);
+    // 使用青色进度条，带标题，并开启 ETA 估算
+    termbar::ProgressBar bar(total_items, termbar::Color::Cyan, "Processing", /*enable_eta=*/true);
 
     // 模拟工作逻辑
     for (int i = 0; i <= total_items; ++i) {

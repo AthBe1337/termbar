@@ -1,6 +1,7 @@
 #include "termbar.h"
 #include <iostream>
 #include <cstdlib>
+#include <cstdio>
 
 #ifdef _WIN32
     #ifndef NOMINMAX
@@ -19,8 +20,9 @@
 
 namespace termbar {
 
-ProgressBar::ProgressBar(int total, Color color)
-    : total_steps_(total), current_step_(0), term_rows_(0), term_cols_(0), finished_(false) {
+ProgressBar::ProgressBar(int total, Color color, const std::string& title, bool enable_eta)
+    : total_steps_(total), current_step_(0), term_rows_(0), term_cols_(0), finished_(false),
+      title_(title), enable_eta_(enable_eta), start_time_(std::chrono::steady_clock::now()) {
 
     setup_console();
 
@@ -150,9 +152,45 @@ void ProgressBar::save_cursor() { std::cout << "\0337"; }
 void ProgressBar::restore_cursor() { std::cout << "\0338"; }
 void ProgressBar::clear_line() { std::cout << "\033[2K"; }
 
+std::string ProgressBar::compute_eta() {
+    // 估算剩余时间：基于已用时间与当前进度的线性外推
+    if (current_step_ <= 0) return "--:--";
+
+    using namespace std::chrono;
+    double elapsed = duration_cast<duration<double>>(steady_clock::now() - start_time_).count();
+
+    long remaining_secs = 0;
+    if (current_step_ < total_steps_) {
+        double per_step = elapsed / current_step_;
+        remaining_secs = (long)(per_step * (total_steps_ - current_step_) + 0.5);
+    }
+
+    long h = remaining_secs / 3600;
+    long m = (remaining_secs % 3600) / 60;
+    long s = remaining_secs % 60;
+
+    char buf[16];
+    if (h > 0)
+        std::snprintf(buf, sizeof(buf), "%ld:%02ld:%02ld", h, m, s);
+    else
+        std::snprintf(buf, sizeof(buf), "%02ld:%02ld", m, s);
+    return buf;
+}
+
 std::string ProgressBar::get_bar_string() {
     float progress = (total_steps_ > 0) ? (float)current_step_ / total_steps_ : 0.0f;
-    int bar_width = term_cols_ - 8;
+
+    std::string prefix;
+    if (!title_.empty()) prefix = title_ + " ";
+
+    std::string pct = std::to_string((int)(progress * 100)) + "%";
+
+    std::string eta_str;
+    if (enable_eta_) eta_str = " ETA " + compute_eta();
+
+    // 为前缀(标题)、括号、百分比与 ETA 预留空间，剩余宽度给进度条本体
+    int reserved = (int)prefix.size() + 1 /*'['*/ + 2 /*"] "*/ + (int)pct.size() + (int)eta_str.size();
+    int bar_width = term_cols_ - reserved;
     if (bar_width < 0) bar_width = 0;
 
     // Sub-character granularity: use 1/8-width block characters
@@ -163,7 +201,7 @@ std::string ProgressBar::get_bar_string() {
     int full_blocks = total_eighths / 8;
     int remainder = total_eighths % 8;
 
-    std::string bar = "[";
+    std::string bar = prefix + "[";
     bar += color_code_;
 
     for (int i = 0; i < full_blocks; ++i)
@@ -178,7 +216,7 @@ std::string ProgressBar::get_bar_string() {
     for (int i = filled_slots; i < bar_width; ++i)
         bar += " ";
 
-    bar += "] " + std::to_string((int)(progress * 100)) + "%";
+    bar += "] " + pct + eta_str;
     return bar;
 }
 

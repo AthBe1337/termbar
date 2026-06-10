@@ -5,9 +5,9 @@
 
 int main() {
     std::cout << "Preparing to download 50 files...\n";
-    
-    // 使用默认颜色 (Green)
-    termbar::ProgressBar bar(50);
+
+    // 使用默认颜色 (Green)，带标题，并显式开启 ETA 估算
+    termbar::ProgressBar bar(50, termbar::Color::Green, "Downloading", /*enable_eta=*/true);
 
     for (int i = 0; i <= 50; ++i) {
         bar.update(i);

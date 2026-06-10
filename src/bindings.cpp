@@ -20,8 +20,11 @@ PYBIND11_MODULE(termbar, m) {
 
     // 导出主类
     py::class_<termbar::ProgressBar>(m, "ProgressBar")
-        .def(py::init<int, termbar::Color>(), 
-             py::arg("total"), py::arg("color") = termbar::Color::Green)
+        .def(py::init<int, termbar::Color, const std::string&, bool>(),
+             py::arg("total"),
+             py::arg("color") = termbar::Color::Green,
+             py::arg("title") = std::string(""),
+             py::arg("enable_eta") = false)
         .def("update", &termbar::ProgressBar::update, py::arg("step"))
         .def("log", &termbar::ProgressBar::log, py::arg("message"))
         .def("finish", &termbar::ProgressBar::finish)

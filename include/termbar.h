@@ -2,6 +2,7 @@
 
 #include <string>
 #include <mutex>
+#include <chrono>
 
 #if defined(TERMBAR_STATIC)
     #define TERMBAR_API
@@ -40,6 +41,9 @@ private:
     bool finished_;
     std::string color_code_;
     std::string reset_code_;
+    std::string title_;
+    bool enable_eta_;
+    std::chrono::steady_clock::time_point start_time_;
 
     void setup_console();
     void update_terminal_info();
@@ -51,9 +55,13 @@ private:
     void restore_cursor();
     void clear_line();
     std::string get_bar_string();
+    std::string compute_eta();
 
 public:
-    ProgressBar(int total, Color color = Color::Green);
+    ProgressBar(int total,
+                Color color = Color::Green,
+                const std::string& title = "",
+                bool enable_eta = false);
     ~ProgressBar();
 
     void update(int step);
